@@ -6,8 +6,11 @@
 
 LSPE := -lspe2
 GCOV := -fprofile-arcs -ftest-coverage
+GCOV_OUT := ./src/*.gcov ./src/*.gcda ./src/*.gcno
 GPROF := -pg
-GCC := gcc $(LSPE) $(GCOV) $(GPROF)
+GPROF_OUT := gmon.out
+# GCC := gcc $(LSPE) $(GCOV) $(GPROF)
+GCC := gcc $(LSPE)
 RM := rm -rf
 
 # All of the sources participating in the build are defined here
@@ -40,6 +43,10 @@ opencl_ps3: $(OBJS) $(USER_OBJS)
 # Other Targets
 clean:
 	-$(RM) $(C_DEPS)$(OBJS)$(EXECUTABLES) opencl_ps3
+	-@echo 'Removing gprof output...'
+	$(RM) $(GPROF_OUT)
+	-@echo 'Removing gcov output...'
+	$(RM) $(GCOV_OUT)
 	-@echo ' '
 
 .PHONY: all clean dependents
