@@ -1,0 +1,58 @@
+
+Parallel computing has become more popular with the introduction of
+multi-core processors and GPGPU(general-purpose computing on graphics processing units).
+But compared to sequential programs, parallel programs are far more complex.
+Race conditions, deadlocks, and synchronization are just some of the
+many hurdles when writing parallel programs. Running the program on differing
+architectures simultaneously only adds to the complexity.
+Yet this new technology can supply programs with incredible performance gains.
+For example, the first supercomputer to break 1 Pflop/s, the Roadrunner at
+Los Alamos National Laboratory, used the Cell/B.E. as performance accelerators
+~\cite{roadrunner}. Some programs exclusively use the Cell/B.E.
+for all computations, such as the VPIC particle-in-cell code ~\cite{vpic}.
+
+Achieving such performance is difficult, particularly when it is a
+hybrid system such as Roadrunner. When the architecture varies from
+one system to the next like desktop computers, achieving peak performance
+can be impossible. For example, optimizing a program to take full advantage
+of both the Cell/B.E. and the NVIDIA Tesla ~\cite{tesla} simultaneously
+and separately would certainly more than double the amount of
+work required. OpenCL(Open Computing Language)~\cite{opencl} hopes to change this.
+
+
+OpenCL aims to treat GPUs and CPUs as peers by abstracting away the hardware
+thereby enabling developers to focus on producing high quality software~\cite{munshi}.
+The abstraction is high enough to hide the implementation details,
+but close enough to give low-level access to underlying hardware ~\cite{ocloverview}.
+It is also open and royalty free with many vendors and industry leaders
+planning to implement it. Unfortunately, there are currently
+no released implementations of OpenCL. It remains merely a specification.
+
+The first announced implementation will be part of Apple's new
+operating system ``Snow Leopard''~\cite{applepr}, but Apple
+has not yet set a release date. NVIDIA is also developing an
+implementation on top of their CUDA architecture~\cite{nvidiapr}~\cite{nvidiaopencl}.
+At SIGGRAPH 2008, NVIDIA demonstrated an n-body simulation based
+on an early non-released OpenCL API/driver interface~\cite{nvidiademo}.
+While IBM is part of the OpenCL working group, there have been
+no specific announcements that an implementation for the Cell/B.E.
+is forthcoming. This has been my impetus.
+
+Having studied and used the PS3 for some research,
+I have first hand experience with its power and capabilities.
+I believe more researchers would use the platform if developing
+software for it were made easier. Implementing OpenCL for the PS3
+would be a major step in this direction.
+
+
+
+
+
+%% These are just some ramblings and tests.
+\begin{comment}
+One such device is IBM's Cell Broadband Engine, or Cell BE for short. The processor is most commonly used in the Playstation 3 game system. The system has become popular among re
+
+Unfortunately, programming for such devices can often be quite difficult. In addition, many systems combine several of these devices together, but most programs will only take advantage of one. OpenCL(Open Computing Language) is a new standard for implementing parallel programming on heterogeneous systems. It aims to allow the development of high-performance programs which are portable and platform-independent. Several companies have already announced their plan to support this new standard including Apple, AMD, RapidMind, and NVIDIA. 
+
+It will support both data- and task- parallel model ~\cite{munshi}.
+\end{comment}

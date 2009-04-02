@@ -1,0 +1,18 @@
+This project deals primarily with parallelism transparency.
+Tasks can be run on multiple devices and in parallel
+with little involvement from the programmer and zero
+involvement from the user. Without OpenCL, programmers
+would have to explicitly control parallel tasks. They
+would also have to write code designed for a specific
+type of architecture, whether it be a CPU, GPU, or some
+other processor. 
+
+With OpenCL, programmers are freed from these constraints.
+They do not have to worry so much about specifics of
+parallelism and architecture. The underlying hardware
+can change and their software will still operate, given
+that the hardware supports OpenCL. Users would also not have to worry
+about downloading different binaries. Instead of
+a binary for CPUs, one for GPUs, and one for both,
+the user can just get one binary which will automatically
+detect any available OpenCL compatible devices.

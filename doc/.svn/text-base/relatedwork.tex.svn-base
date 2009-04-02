@@ -1,0 +1,32 @@
+Parallel programming abstraction is not new.
+MPI~\cite{mpi} and OpenMP~\cite{openmp} are both
+well known parallel APIs. They allow developers to
+write parallel code with little knowledge of the
+underlying hardware. Unfortunately, they do not
+directly support GPUs. There has been effort
+to give GPGPU support for OpenMP~\cite{1504194}.
+There are also a number of GPGPU clusters using
+MPI~\cite{1278846}~\cite{1049991}. But the implementations
+are platform specific and rely on homogeneous systems.
+CUDA~\cite{cuda} is also fairly well established.
+It is used in a number of research projects~\cite{1513899}~\cite{1513905}~\cite{1413373}.
+But again, CUDA relies on homogeneous systems and 
+only utilizes NVIDIA graphics devices. AMD tried
+producing a GPGPU API called ``Close to Metal''~\cite{closetometal},
+but it failed to catch on and is now deprecated.
+
+There have been previous attempts to provide
+high-level parallel programming on heterogeneous systems.
+OpenCL is certainly not the first. Agora~\cite{36180}
+was an early attempt at producing a programming
+language designed with heterogeneous systems in mind.
+It unfortunately did not become popular with developers.
+More recently, there has been research which bears
+resemblance to OpenCL. In his paper, Chiang proposed implicit parallelism
+in programming~\cite{1071558}~\cite{1061887}. He did not suggest
+a new language, but merely extensions to established languages.
+There is also the Java Parallel Processing Framework~\cite{jppf}.
+It is a grid computing platform written for Java. It allows
+your program to run on any platform that has a Java
+implementation.
+

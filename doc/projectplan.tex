@@ -1,0 +1,65 @@
+I plan to implement a minimal subset of the
+OpenCL specification. This will allow
+basic programs using OpenCL to run on the PS3.
+I will implement the required functions for
+the setup and execution of tasks. This process
+involves seven key steps which can be seen in
+Appendix D of the OpenCL specification~\cite{opencl}.
+\begin{enumerate}
+\item Create an OpenCL context
+\item Create a command-queue
+\item Allocate memory objects
+\item Create kernel
+  \begin{enumerate}
+    \item Create program
+    \item Build program
+    \item Get kernel
+  \end{enumerate}
+\item Set work-item dimensions
+\item Execute kernel
+\end{enumerate}
+
+The three most important steps will 
+be the most difficult to implement: creating contexts,
+allocating memory objects, and creating kernels.
+A context is a data structure that holds all information associated with a
+device such as command-queues, memory objects,
+and kernels. Allocating memory objects will
+be difficult because I must conform to
+the OpenCL memory model. Creating kernels
+is actually several steps and possibly involves compiling
+source code from within an executable. 
+
+\subsection{Deliverables and Milestones}
+To achieve this, I will create header and source files which
+implement the OpenCL functions using the Cell SDK.
+I will also write a short program which uses the
+implemented functions. The program will compute
+the integral of a simple polynomial using a
+Reimann sum. This computation is easily parallelized
+and I will be using code from a previous project.
+
+There will be several key milestones in the project.
+Note that this is not necessarily the order in which they will be completed.
+However, the first milestone will be completed first because
+all other milestones rely on it.
+\begin{enumerate}
+  \item Define the data structures passed 
+    between the various functions. 
+  \item Implement the context related functions
+  \item Implement the memory object related functions
+  \item Implement the kernel related functions
+  \item Implement the remaining required OpenCL functions
+\end{enumerate}
+
+Because of the limited amount of time allocated
+for this project, certain functions may be nothing
+more than dirty hacks. This will be avoided whenever
+possible, but the final deliverable may require them
+to function.
+
+\begin{comment}
+The ultimate goal is to fully support OpenCL on the PS3. 
+However, this may not be possible in the limited
+5 week time frame.
+\end{comment}
