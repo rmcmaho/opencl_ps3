@@ -16,6 +16,12 @@ OBJS += \
 ./src/main.o 
 
 
+SPE_SRCS += \
+../src/hello_spe.c
+
+ELFS += \
+hello_spe.elf
+
 # Each subdirectory must supply rules for building sources it contributes
 src/%.o: ../src/%.c
 	@echo 'Building file: $<'

@@ -27,6 +27,7 @@
 
 //#include <OpenCL/cl.h>
 #include "cl.h"
+#include <libspe2.h>
 
 #ifndef __kernel
 #define __kernel
@@ -116,7 +117,7 @@ struct _cl_mem
   size_t mem_size;
   void *mem_host_ptr;
   cl_uint mem_map_count;
-  cl_uint mem_reference_count;
+  cl_uint mem_ref_count;
   cl_context mem_context;
 
   //Image properties
@@ -144,13 +145,18 @@ struct _cl_sampler
 //Inferred from table 5.11 and 5.12 of OpenCL Spec
 struct _cl_program
 {
-  cl_uint program_reference_count;
+  cl_uint program_ref_count;
   cl_context program_context;
   cl_uint program_num_devices;
-  cl_device_id *cl_program_devices;
+  const cl_device_id *program_devices;
   char *program_source;
-  size_t *program_binary_sizes;
-  char (*program_binaries)[];
+
+  // Actual binaries
+  spe_program_handle_t *program_elfs;
+
+  // Just names of binaries
+  const size_t *program_binary_sizes;
+  char **program_binaries;
 
   //build info
   cl_build_status program_build_status;
@@ -164,9 +170,17 @@ struct _cl_kernel
 {
   char *kernel_function_name;
   cl_uint kernel_num_args;
-  cl_uint kernel_reference_count;
+  cl_uint kernel_ref_count;
   cl_context kernel_context;
   cl_program kernel_program;
+
+  cl_uint kernel_num_memobjs;
+  cl_mem *kernel_memobjs;
+
+  //SPE arguments
+  cl_uint kernel_num_spe_args;
+  cl_ulong *kernel_spe_args;
+
 };
 
 

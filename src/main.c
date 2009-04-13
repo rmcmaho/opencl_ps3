@@ -3,11 +3,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <libspe2.h>
+
 
 //function prototypes
 void testDeviceInfo (cl_device_id);
 
 #define DEBUG 1
+
+
+void
+delete_memobjs(cl_mem *memobjs, int n)
+{
+  int i;
+  for (i=0; i<n; i++)
+    clReleaseMemObject(memobjs[i]);
+}
+
+
 
 int
 main ()
@@ -22,6 +35,10 @@ main ()
   size_t local_work_size[1];
   size_t cb;
   cl_int err;
+  int n = 3;
+  cl_float4 srcA[n], srcB[n];
+
+
 
   printf ("OpenCL on PS3 \n");
   // printf("Num processors: %ld \n",sysconf(_SC_NPROCESSORS_CONF));
@@ -35,7 +52,7 @@ main ()
   if (context == (cl_context) 0)
     return -1;
 
-  if (0)
+  if (1)
     {
       printf ("Outside\n");
       printf ("context: %p\n", context);
@@ -66,10 +83,95 @@ main ()
       clReleaseContext(context);
       return -1;
     }
+  //free(devices);
+
+  memobjs[0] = clCreateBuffer(context,
+			      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+			      sizeof(cl_float4) * n, srcA, &err);
+  if (memobjs[0] == (cl_command_queue)0)
+    {
+      if(DEBUG)
+	{
+	  fprintf(stderr,"\nInvalid buffer\n\n");
+	  fprintf(stderr,"Errcode: %d\n", err);
+	}
+
+      clReleaseCommandQueue(cmd_queue);
+      clReleaseContext(context);
+      return -1;
+    }
+
+  memobjs[1] = clCreateBuffer(context,
+			      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+			      sizeof(cl_float4) * n, srcB, NULL);
+  if (memobjs[1] == (cl_mem)0)
+    {
+      delete_memobjs(memobjs, 1);
+      clReleaseCommandQueue(cmd_queue);
+      clReleaseContext(context);
+      return -1;
+    }
+
+  memobjs[2] = clCreateBuffer(context,
+			      CL_MEM_READ_WRITE,
+			      sizeof(cl_float) * n, NULL, NULL);
+  if (memobjs[2] == (cl_mem)0)
+    {
+      delete_memobjs(memobjs, 2);
+      clReleaseCommandQueue(cmd_queue);
+      clReleaseContext(context);
+      return -1;
+    }
+
+
+  const char *input = "hello_spe.elf";
+  int size = strlen(input);
+  program = clCreateProgramWithBinary(context, 1, devices, 
+				      &size, &input,
+				      NULL, &err);
+
+  if (program == (cl_program)0)
+    {
+      delete_memobjs(memobjs, 3);
+      clReleaseCommandQueue(cmd_queue);
+      clReleaseContext(context);
+      return -1;
+    }
+
   free(devices);
 
-  clReleaseContext (context);
+
+  kernel = clCreateKernel(program, "hello_spe", NULL);
+  if (program == (cl_program)0)
+    {
+      delete_memobjs(memobjs, 3);
+      clReleaseCommandQueue(cmd_queue);
+      clReleaseContext(context);
+      return -1;
+    }
+
+  cl_ulong argp = 12345;
+  err = clSetKernelArg(kernel, 0, sizeof(cl_ulong), (void *) &argp);
+
+  cl_ulong envp = 67890;
+  err = clSetKernelArg(kernel, 1, sizeof(cl_ulong), (void *) &envp);
+
+
+  // set work-item dimensions
+  global_work_size[0] = n;
+  local_work_size[0]= 1;
+
+  // execute kernel
+  err = clEnqueueNDRangeKernel(cmd_queue, kernel, 1, NULL,
+			       global_work_size, local_work_size,
+			       0, NULL, NULL);
+
+  delete_memobjs(memobjs, 3);
+  clReleaseKernel(kernel);
+  clReleaseProgram(program);
   clReleaseCommandQueue(cmd_queue);
+  clReleaseContext (context);
+
 
   return 0;
 }

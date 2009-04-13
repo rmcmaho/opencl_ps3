@@ -11,6 +11,7 @@ GPROF := -pg
 GPROF_OUT := gmon.out
 # GCC := gcc $(LSPE) $(GCOV) $(GPROF)
 GCC := gcc $(LSPE)
+SPU-GCC := spu-gcc
 RM := rm -rf
 
 # All of the sources participating in the build are defined here
@@ -37,12 +38,13 @@ opencl_ps3: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: $(GCC) C Linker'
 	$(GCC)  -o"opencl_ps3" $(OBJS) $(USER_OBJS) $(LIBS)
+	$(SPU-GCC) $(SPE_SRCS) -o $(ELFS)	
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(C_DEPS)$(OBJS)$(EXECUTABLES) opencl_ps3
+	-$(RM) $(C_DEPS)$(OBJS)$(EXECUTABLES)$(ELFS) opencl_ps3
 	-@echo 'Removing gprof output...'
 	$(RM) $(GPROF_OUT)
 	-@echo 'Removing gcov output...'
