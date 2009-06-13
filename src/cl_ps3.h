@@ -28,10 +28,31 @@
 //#include <OpenCL/cl.h>
 #include "cl.h"
 #include <libspe2.h>
+#include <pthread.h>
 
 #ifndef __kernel
 #define __kernel
 #endif
+
+//
+//Helper functions and data types
+//
+
+#define CELL_API_CALL
+
+extern cl_context CELL_API_CALL createCellContext (cl_int *);
+
+typedef struct _event_list *event_list;
+
+struct _event_list
+{
+  cl_event event;
+  event_list next;
+};
+
+//
+//OpenCL data types
+//
 
 // Inferred from Table 4.3 of OpenCL Spec
 struct _cl_device_id
@@ -106,6 +127,15 @@ struct _cl_command_queue
   cl_device_id queue_device;
   cl_uint queue_ref_count;
   cl_command_queue_properties queue_properties;
+
+  pthread_t *queue_thread;
+
+  pthread_mutex_t *dataMutex;
+  pthread_cond_t *dataPresentCondition;
+  cl_bool stayAlive;
+
+  event_list list;
+  event_list last_element;
 };
 
 
@@ -192,16 +222,30 @@ struct _cl_event
   cl_command_type event_command_type;
   cl_int event_command_execution_status;
   cl_uint event_reference_count;
+
+  //Stored data for various event types
+  cl_uint num_events_in_wait_list;
+  cl_event *event_wait_list;
+
+  //NDRangeKernel and Task
+  cl_kernel kernel;
+  cl_uint work_dim;
+  const size_t *global_work_offset;
+  const size_t *global_work_size;
+  const size_t *local_work_size;
+
+  //Read,Write,Copy buffer
+  cl_mem src_buffer;
+  cl_mem dst_buffer;
+  cl_bool blocking;
+  size_t src_offset;
+  size_t dst_offset;
+  size_t cb;
+  void *ptr;
+
 };
 
 
 
-//Helper functions
-
-#define CELL_API_CALL
-
-extern cl_context CELL_API_CALL createCellContext (cl_int *);
-
-extern void setCellDeviceID (cl_context);
 
 #endif // __CL_PS3_H

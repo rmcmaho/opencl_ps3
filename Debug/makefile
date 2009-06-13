@@ -4,15 +4,32 @@
 
 -include ../makefile.init
 
-LSPE := -lspe2
-GCOV := -fprofile-arcs -ftest-coverage
-GCOV_OUT := ./src/*.gcov ./src/*.gcda ./src/*.gcno
-GPROF := -pg
-GPROF_OUT := gmon.out
-# GCC := gcc $(LSPE) $(GCOV) $(GPROF)
+LSPE = -lspe2
+GCOV = -fprofile-arcs -ftest-coverage
+GCOV_OUT = ./src/*.gcov ./src/*.gcda ./src/*.gcno
+GPROF = -pg
+GPROF_OUT = gmon.out
+# GCC = gcc $(LSPE) $(GCOV) $(GPROF)
 GCC := gcc $(LSPE)
-SPU-GCC := spu-gcc
-RM := rm -rf
+
+ifdef DEBUG
+# GCC := $(GCC) -D DEBUG=$(DEBUG)
+GCC := $(GCC) -D DEBUG=1
+endif
+
+ifdef PS3_DEBUG
+# GCC := $(GCC) -D PS3_DEBUG=$(PS3_DEBUG)
+GCC := $(GCC) -D PS3_DEBUG=1
+endif
+
+ifdef WORK_ITEMS
+GCC := $(GCC) -D WORK_ITEMS=$(WORK_ITEMS)
+endif
+ 
+
+SPU-GCC = spu-gcc
+RM = rm -rf
+
 
 # All of the sources participating in the build are defined here
 -include sources.mk

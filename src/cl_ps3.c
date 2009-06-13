@@ -9,16 +9,26 @@
 #include <string.h>
 #include <pthread.h>
 
-#define PS3_DEBUG 1
+#ifndef PS3_DEBUG
+#define PS3_DEBUG 0
+#endif
 
+
+#if PS3_DEBUG
+#define PRINT_DEBUG(format, args...) printf(format, ##args);
+#else
+#define PRINT_DEBUG(format, args...)
+#endif
 
 // Helper functions
+
 void
 setErrCode(cl_int * errcode_ret, cl_int code)
 {
   if(errcode_ret != NULL)
     *errcode_ret = code;
 }
+
 
 /**
  * struct for use with runKernelOnSPE()
@@ -41,8 +51,9 @@ void *runKernelOnSPE(void *thread_arg)
   cl_ulong *spe_args = arg->kernel->kernel_spe_args;
 
   entry = SPE_DEFAULT_ENTRY;
-  ret = spe_context_run(arg->spe, &entry, 0, spe_args[0], spe_args[1], &stop_info);
+  ret = spe_context_run(arg->spe, &entry, 0, &spe_args[0], &spe_args[1], &stop_info);
 
+  return 0;
 }
 
 extern cl_context
@@ -55,14 +66,12 @@ createCellContext (cl_int * errcode_ret)
 
   int node_count = spe_cpu_info_get (SPE_COUNT_PHYSICAL_CPU_NODES, -1);
 
-  if (PS3_DEBUG)
-    {
-      fprintf (stderr, "Num nodes: %d\n", node_count);
-      int phys_spes = spe_cpu_info_get (SPE_COUNT_PHYSICAL_SPES, -1);
-      fprintf (stderr, "Num physical spes: %d\n", phys_spes);
-      int usable_spes = spe_cpu_info_get (SPE_COUNT_USABLE_SPES, -1);
-      fprintf (stderr, "Num usable spes: %d\n", usable_spes);
-    }
+  PRINT_DEBUG("Num nodes: %d\n", node_count);
+  int phys_spes = spe_cpu_info_get (SPE_COUNT_PHYSICAL_SPES, -1);
+  PRINT_DEBUG("Num physical spes: %d\n", phys_spes);
+  int usable_spes = spe_cpu_info_get (SPE_COUNT_USABLE_SPES, -1);
+  PRINT_DEBUG("Num usable spes: %d\n", usable_spes);
+  
 
   if (node_count < 1)
     {
@@ -70,102 +79,233 @@ createCellContext (cl_int * errcode_ret)
       return (cl_context) 0;
     }
 
-  if (PS3_DEBUG)
-    fprintf (stderr, "sizeof(cl_context) == %ud\n",
-	     sizeof (struct _cl_context));
+  PRINT_DEBUG("sizeof(cl_context) == %d\n", sizeof (struct _cl_context));
 
   cl_context context = malloc (sizeof (struct _cl_context));
 
-  if (PS3_DEBUG)
-    fprintf (stderr, "Setting cell device ID\n");
-
-  setCellDeviceID (context);
-
+  
   return context;
 }
 
-extern void
-setCellDeviceID (cl_context context)
+
+cl_event createNewEvent(cl_command_queue command_queue,
+			cl_command_type type,
+			cl_uint num_events_in_wait_list,
+			const cl_event *event_wait_list)
 {
 
-  cl_device_id device = malloc (sizeof (struct _cl_device_id));
-  cl_device_id *devices = malloc (sizeof (cl_device_id *));
-  *devices = device;
-  context->device_list = devices;
+  cl_event new_event = malloc(sizeof (struct _cl_event));
 
+  new_event->event_command_queue = command_queue;
 
-  if (PS3_DEBUG)
-    printf ("Context: %p List: %p  Device: %p\n", context,
-	    context->device_list, &device);
+  new_event->event_command_type = type;
+  new_event->event_command_execution_status = CL_QUEUED;
+  new_event->event_reference_count = 1;
+  new_event->num_events_in_wait_list = num_events_in_wait_list;
 
-
-  //debug info
-  if (0)
+  if(event_wait_list != NULL)
     {
-      printf ("context: %p\n", context);
-      printf ("*context: %p\n", *context);
-      printf ("context->device_list: %p\n", (context->device_list));
-      printf ("*(context->device_list): %p\n", *(context->device_list));
-      printf ("**(context->device_list): %p\n", **(context->device_list));
-      printf ("device: %p\n", device);
-      printf ("*device: %p\n", *device);
+      size_t list_size = num_events_in_wait_list * sizeof(cl_event);
+      new_event->event_wait_list = malloc(list_size);
+      
+      memcpy(new_event->event_wait_list, event_wait_list, list_size);
+    }else
+    {
+      new_event->event_wait_list = NULL;
     }
 
+  //Default values
+  new_event->kernel = (cl_kernel) 0;
+  new_event->work_dim = 0;
+  new_event->global_work_offset = 0;
+  new_event->global_work_size = 0;
+  new_event->local_work_size = 0;
 
-  // Set device info
+  new_event->src_buffer = (cl_mem) 0;
+  new_event->dst_buffer = (cl_mem) 0;
+  new_event->blocking = CL_TRUE;
+  new_event->src_offset = 0;
+  new_event->dst_offset = 0;
+  new_event->cb = 0;
+  new_event->ptr = NULL;
+  
+  return new_event;
+}
 
-  cl_uint max_units = spe_cpu_info_get (SPE_COUNT_PHYSICAL_SPES, -1);
-  cl_uint clock = 3192;
+void setNDRangeEvent(cl_event event,
+		     cl_kernel kernel,
+		     cl_uint work_dim,
+		     const size_t *global_work_offset,
+		     const size_t *global_work_size,
+		     const size_t *local_work_size)
+{
+  clRetainKernel(kernel);
+  event->kernel = kernel;
+  event->work_dim = work_dim;
 
-  device->device_type = CL_DEVICE_TYPE_CPU;
-  device->device_max_compute_units = max_units;
-  device->device_max_clock_frequency = clock;
-
-  cl_uint dim = 3;
-
-  device->device_max_work_item_dimensions = dim;
-  device->device_max_work_item_sizes = malloc (sizeof (size_t) * dim);
-  device->device_max_work_item_sizes[0] = max_units;
-  device->device_max_work_item_sizes[1] = 1;
-  device->device_max_work_item_sizes[2] = 1;
-  device->device_max_work_group_size = max_units;
-
-  char *name = "Cell Broadband Engine";
-  char *vendor = "IBM";
-
-  device->device_name = malloc (strlen (name) + 1);
-  strcpy (device->device_name, name);
-  device->device_vendor = malloc (strlen (vendor) + 1);
-  strcpy (device->device_vendor, vendor);
-
-  if (PS3_DEBUG)
-    fprintf (stderr, "Device name and Vendor: %s-%s\n",
-	     device->device_name, device->device_vendor);
-
-  device->driver_version = NULL;
-  device->device_profile = NULL;
-  device->device_version = NULL;
-  device->device_extensions = NULL;
-
-  // in bytes converted from 10^3 to 2^10
-  device->device_global_mem_size = 216768000;
-  device->device_local_mem_type = CL_LOCAL;
-  device->device_local_mem_size = 250000;
-
-
-  spe_context_ptr_t spe;
-  spe = spe_context_create(0, NULL);
-  if(PS3_DEBUG)
-    fprintf(stderr, "SPE Local Store size: %d\n", spe_ls_size_get(spe));
-
-  device->device_max_mem_alloc_size = spe_ls_size_get(spe);
-
-  device->device_endian_little = CL_FALSE;
-  device->device_available = CL_TRUE;
+  if(global_work_offset != NULL)
+    event->global_work_offset = global_work_offset;
+  if(global_work_size != NULL)
+    event->global_work_size = global_work_size;
+  if(local_work_size != NULL)
+    event->local_work_size = local_work_size;
 
 }
 
 
+void *CommandQueueThread(void *cmd_queue_ptr)
+{
+
+  cl_command_queue cmd_queue = *((cl_command_queue *)cmd_queue_ptr);
+  if(PS3_DEBUG)
+    {
+      printf("CommandQueueThread: Command queue location %p\n", cmd_queue);
+      printf("CommandQueueThread: Thread created. Locking mutex %p\n", cmd_queue->dataMutex);
+    }
+  
+  pthread_mutex_lock(cmd_queue->dataMutex);
+  
+  if(PS3_DEBUG)
+    printf("CommandQueueThread: Mutex locked. Signalling thread is created\n");
+
+  pthread_cond_signal(cmd_queue->dataPresentCondition);
+
+  if(PS3_DEBUG)
+    printf("CommandQueueThread: Unlocking mutex\n");
+
+  pthread_mutex_unlock(cmd_queue->dataMutex);
+
+  while(cmd_queue->stayAlive == CL_TRUE)
+    {
+      if(PS3_DEBUG)
+	printf("CommandQueueThread: Locking mutex\n");
+
+      pthread_mutex_lock(cmd_queue->dataMutex);
+
+      if(PS3_DEBUG)
+	printf("CommandQueueThread: Waiting on condition\n");
+
+      pthread_cond_wait(cmd_queue->dataPresentCondition, cmd_queue->dataMutex);
+
+      if(PS3_DEBUG)
+	printf("CommandQueueThread: Condition Satisfied!\n");
+
+      if(cmd_queue->stayAlive == CL_FALSE && cmd_queue->list == NULL)
+	break;
+
+      event_list list = cmd_queue->list;
+      if(list == NULL)
+	return 0;
+      cl_event event = list->event;
+      cmd_queue->list = list->next;
+
+      pthread_mutex_unlock(cmd_queue->dataMutex);
+
+
+      if(event->event_command_type == CL_COMMAND_NDRANGE_KERNEL)
+	{
+
+	  cl_kernel kernel = event->kernel;
+	  clRetainKernel(kernel);
+	  cl_uint work_dim = event->work_dim;
+	  const size_t *global_work_size = event->global_work_size;
+
+	  int ret;
+	  int NUM_SPE = global_work_size[work_dim-1];
+	  spe_context_ptr_t spe[NUM_SPE];
+	  pthread_t thread[NUM_SPE];
+	  kernel_spe_thread arg[NUM_SPE];
+	  
+	  int i;
+	  for(i = 0; i < NUM_SPE; i++)
+	    {
+	      
+	      spe[i] = spe_context_create(0, NULL);
+	      
+	      cl_program program = kernel->kernel_program;
+	      clRetainProgram(program);
+
+	      if(PS3_DEBUG)
+		{
+		  printf("CommandQueueThread: Loading spe program\n");
+		  printf("CommandQueueThread: Program location %p\n", program);
+		  printf("CommandQueueThread: Program elfs location %p\n",
+			 program->program_elfs);
+		}
+	      
+	      spe_program_handle_t elf = *(program->program_elfs);
+	      ret = spe_program_load(spe[i], &elf);
+
+	      if(PS3_DEBUG)
+		printf("CommandQueueThread: Program loaded\n");
+
+	      arg[i].spe = spe[i];
+	      arg[i].kernel = kernel;
+	      
+	      if(PS3_DEBUG)
+		printf("CommandQueueThread: Creating spe threads\n");
+
+	      ret = pthread_create(&thread[i], NULL, runKernelOnSPE, &arg[i]);
+	      
+
+	      clReleaseProgram(program);
+	    }
+	  
+	  
+	  //Should probably not do this here
+	  if(PS3_DEBUG)
+	    fprintf(stderr, "Joining threads\n");
+	  
+	  for(i=0; i<NUM_SPE; i++)
+	    {
+	      pthread_join(thread[i], NULL);
+	      ret = spe_context_destroy(spe[i]);
+	    }
+	  
+	  if(PS3_DEBUG)
+	    fprintf(stderr, "All threads joined\n");
+	  
+	  clReleaseKernel(kernel);
+	  
+	}
+
+    }
+
+  if(PS3_DEBUG)
+    printf("CommandQueueThread: Thread closing\n");
+
+  return 0;
+}
+
+
+void addEventToCommandQueue(cl_event event, cl_command_queue cmd_queue)
+{
+
+  pthread_mutex_lock(cmd_queue->dataMutex);
+
+  event_list last = cmd_queue->last_element;
+  event_list newLast = malloc(sizeof(struct _event_list));
+  newLast->event = event;
+  newLast->next = NULL;
+
+  if(last != NULL)
+    {
+      last->next = newLast;
+      cmd_queue->last_element = newLast;
+    }
+  else
+    {
+      if(cmd_queue->list == NULL)
+	{
+	  cmd_queue->list = newLast;
+	  cmd_queue->last_element = newLast;
+	}
+    }
+
+  pthread_cond_broadcast(cmd_queue->dataPresentCondition);
+  pthread_mutex_unlock(cmd_queue->dataMutex);
+
+}
 
 /******************************************************************************/
 
@@ -220,6 +360,18 @@ extern cl_context clCreateContextFromType
       context->prop = properties;
       context->device_count = 1;
       context->ref_count = 0;
+      
+      cl_device_id *device_id = malloc(sizeof (cl_device_id *));
+
+      cl_int err = clGetDeviceIDs(CL_DEVICE_TYPE_CPU, 1, device_id, NULL);
+
+      if (err != CL_SUCCESS)
+	{
+	  setErrCode(errcode_ret, err);
+	  return (cl_context) 0;
+	}
+
+      context->device_list = device_id;
 
       if (PS3_DEBUG)
 	fprintf (stderr, "Performing implicit context retain\n");
@@ -289,19 +441,73 @@ cl_int clGetDeviceIDs (cl_device_type device_type,
     return CL_DEVICE_NOT_FOUND;
   
   if(num_devices != NULL)
-    *num_devices = spe_count;
+    *num_devices = 1;
   
   
   if(device_type == CL_DEVICE_TYPE_CPU)
     {
 
       //TODO
+      cl_device_id device = malloc (sizeof (struct _cl_device_id));
+      *devices = device;
+  
 
+      // Set device info
+      
+      cl_uint max_units = spe_cpu_info_get (SPE_COUNT_PHYSICAL_SPES, -1);
+      cl_uint clock = 3192;
+      
+      device->device_type = CL_DEVICE_TYPE_CPU;
+      device->device_max_compute_units = max_units;
+      device->device_max_clock_frequency = clock;
+      
+      cl_uint dim = 3;
+      
+      device->device_max_work_item_dimensions = dim;
+      device->device_max_work_item_sizes = malloc (sizeof (size_t) * dim);
+      device->device_max_work_item_sizes[0] = max_units;
+      device->device_max_work_item_sizes[1] = 1;
+      device->device_max_work_item_sizes[2] = 1;
+      device->device_max_work_group_size = max_units;
+      
+      char *name = "Cell Broadband Engine";
+      char *vendor = "IBM";
+      
+      device->device_name = malloc (strlen (name) + 1);
+      strcpy (device->device_name, name);
+      device->device_vendor = malloc (strlen (vendor) + 1);
+      strcpy (device->device_vendor, vendor);
+      
+      if (PS3_DEBUG)
+	fprintf (stderr, "Device name and Vendor: %s-%s\n",
+		 device->device_name, device->device_vendor);
+      
+      device->driver_version = NULL;
+      device->device_profile = NULL;
+      device->device_version = NULL;
+      device->device_extensions = NULL;
+      
+      // in bytes converted from 10^3 to 2^10
+      device->device_global_mem_size = 216768000;
+      device->device_local_mem_type = CL_LOCAL;
+      device->device_local_mem_size = 250000;
+      
+      
+      spe_context_ptr_t spe;
+      spe = spe_context_create(0, NULL);
+      if(PS3_DEBUG)
+	fprintf(stderr, "SPE Local Store size: %d\n", spe_ls_size_get(spe));
+      
+      device->device_max_mem_alloc_size = spe_ls_size_get(spe);
+      
+      device->device_endian_little = CL_FALSE;
+      device->device_available = CL_TRUE;
+      
     }
   else
     return CL_INVALID_DEVICE_TYPE;
-
-
+  
+  
   return CL_SUCCESS;
 }
 
@@ -372,6 +578,47 @@ extern cl_command_queue clCreateCommandQueue (cl_context context,
   cmd_queue->queue_device = device;
   cmd_queue->queue_properties = properties;
   cmd_queue->queue_ref_count = 1;
+
+  cmd_queue->dataMutex = malloc(sizeof(pthread_mutex_t));
+  cmd_queue->dataPresentCondition = malloc(sizeof(pthread_cond_t));
+
+  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  *(cmd_queue->dataMutex) = mutex;
+
+  pthread_cond_t con = PTHREAD_COND_INITIALIZER;
+  *(cmd_queue->dataPresentCondition) = con;
+
+  cmd_queue->stayAlive = CL_TRUE;
+
+  cmd_queue->list = (event_list) 0;
+  cmd_queue->last_element = (event_list) 0;
+
+  if(PS3_DEBUG)
+    {
+      printf("Create: Command queue location %p\n", cmd_queue);
+      printf("Create: Mutex location %p\n", cmd_queue->dataMutex);
+    }
+
+  pthread_mutex_lock(cmd_queue->dataMutex);
+
+  if(PS3_DEBUG)
+    printf("Create: Mutex locked\n");
+
+  pthread_t *thread = malloc(sizeof(pthread_t));
+
+  if(PS3_DEBUG)
+    printf("Create: Creating thread\n");
+
+  pthread_create(thread, NULL, CommandQueueThread, &cmd_queue);
+
+  pthread_cond_wait(cmd_queue->dataPresentCondition, cmd_queue->dataMutex);    
+  
+  if(PS3_DEBUG)
+    printf("Create: Thread created. Unlocking mutex\n");
+
+  pthread_mutex_unlock(cmd_queue->dataMutex);
+
+  cmd_queue->queue_thread = thread;
 
   if (PS3_DEBUG)
     fprintf (stderr, "\n====\tReturning command queue\t====\n");
@@ -633,7 +880,7 @@ cl_program clCreateProgramWithBinary (cl_context context,
                                       cl_uint num_devices,
                                       const cl_device_id *device_list,
                                       const size_t *lengths,
-                                      const void **binaries,
+                                      const char **binaries,
                                       cl_int *binary_status,
                                       cl_int *errcode_ret)
 {
@@ -819,6 +1066,20 @@ cl_int clEnqueueNDRangeKernel (cl_command_queue command_queue,
     }
 
   if (PS3_DEBUG)
+    fprintf(stderr, "\n====\tCreating Event  \t====\n");
+
+  cl_event new_event = createNewEvent(command_queue, CL_COMMAND_NDRANGE_KERNEL,
+				      num_events_in_wait_list, event_wait_list);
+  
+  setNDRangeEvent(new_event, kernel, work_dim, global_work_offset,
+		  global_work_size, local_work_size);
+
+  
+  //  clReleaseEvent(new_event);
+  //  free(new_event);
+
+
+  if (PS3_DEBUG)
     fprintf (stderr, "\n====\tEnqueuing kernel  \t====\n");
   
   //Will only do one dimension
@@ -827,36 +1088,17 @@ cl_int clEnqueueNDRangeKernel (cl_command_queue command_queue,
       return CL_INVALID_WORK_DIMENSION;
     }
 
-  int ret;
-  int NUM_SPE = global_work_size[work_dim-1];
-  spe_context_ptr_t spe[NUM_SPE];
-  pthread_t thread[NUM_SPE];
-  kernel_spe_thread arg[NUM_SPE];
+  cl_program program = kernel->kernel_program;
 
-  int i;
-  for(i = 0; i < NUM_SPE; i++)
+
+  if(PS3_DEBUG)
     {
-      
-      spe[i] = spe_context_create(0, NULL);
-
-      cl_program program = kernel->kernel_program;
-      ret = spe_program_load(spe[i], program->program_elfs);
-
-      arg[i].spe = spe[i];
-      arg[i].kernel = kernel;
-
-      ret = pthread_create(&thread[i], NULL, runKernelOnSPE, &arg[i]);
-
+      printf("NDRange: Program location %p\n", program);
+      printf("NDRange: Program elefs location %p\n",
+	     program->program_elfs);
     }
 
-
-  //Should probably not do this here
-  for(i=0; i<NUM_SPE; i++)
-    {
-      pthread_join(thread[i], NULL);
-      ret = spe_context_destroy(spe[i]);
-    }
-
+  addEventToCommandQueue(new_event, command_queue);
 
   if(num_events_in_wait_list > 0)
     {
@@ -1397,7 +1639,36 @@ clReleaseCommandQueue(cl_command_queue command_queue)
       (command_queue->queue_ref_count)--;
       if(command_queue->queue_ref_count <= 0)
 	{
+	  if(PS3_DEBUG)
+	    printf("Release: Locking mutex %p\n", command_queue->dataMutex);
+
+	  pthread_mutex_lock(command_queue->dataMutex);
+	  command_queue->stayAlive = CL_FALSE;
+
+	  if(PS3_DEBUG)
+	    printf("Release: signalling thread\n");
+
+	  pthread_cond_signal(command_queue->dataPresentCondition);
+
+	  if(PS3_DEBUG)
+	    printf("Release: unlocking mutex\n");
+
+	  pthread_mutex_unlock(command_queue->dataMutex);
+
+	  if(PS3_DEBUG)
+	    printf("Waiting for thread to die\n");
+
+	  pthread_join(*(command_queue->queue_thread), NULL);
+
+	  if(PS3_DEBUG)
+	    printf("Thread dead. Freeing memory\n");
+
+	  free(command_queue->dataMutex);
+	  free(command_queue->dataPresentCondition);
 	  free(command_queue);
+
+	  if(PS3_DEBUG)
+	    printf("Memory freed\n");
 	}
       return CL_SUCCESS;
     }
@@ -1410,6 +1681,19 @@ clReleaseMemObject(cl_mem memObj)
   free(memObj);
   return CL_SUCCESS;
 }
+
+extern cl_int
+clRetainProgram(cl_program program)
+{
+  if (program == (cl_program) 0)
+    return CL_INVALID_PROGRAM;
+  else
+    {
+      (program->program_ref_count)++;
+      return CL_SUCCESS;
+    }
+}
+
 
 extern cl_int
 clReleaseProgram(cl_program program)
@@ -1427,11 +1711,27 @@ clReleaseProgram(cl_program program)
 }
 
 extern cl_int
+clRetainKernel(cl_kernel kernel)
+{
+  if (kernel == (cl_kernel) 0)
+    return CL_INVALID_KERNEL;
+  else
+    {
+      (kernel->kernel_ref_count)++;
+      clRetainProgram(kernel->kernel_program);
+      clRetainContext(kernel->kernel_context);
+      return CL_SUCCESS;
+    }
+}
+
+extern cl_int
 clReleaseKernel(cl_kernel kernel)
 {
   (kernel->kernel_ref_count)--;
   if(kernel->kernel_ref_count < 1)
     {
+      clReleaseProgram(kernel->kernel_program);
+      clReleaseContext(kernel->kernel_context);
       free(kernel->kernel_function_name);
       free(kernel->kernel_spe_args);
       free(kernel);

@@ -1,6 +1,7 @@
 //#include "cl.h"
 #include "cl_ps3.h"
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <libspe2.h>
@@ -9,8 +10,13 @@
 //function prototypes
 void testDeviceInfo (cl_device_id);
 
-#define DEBUG 1
+#ifndef DEBUG
+#define DEBUG 0
+#endif
 
+#ifndef WORK_ITEMS
+#define WORK_ITEMS 3
+#endif
 
 void
 delete_memobjs(cl_mem *memobjs, int n)
@@ -35,7 +41,7 @@ main ()
   size_t local_work_size[1];
   size_t cb;
   cl_int err;
-  int n = 3;
+  int n = WORK_ITEMS;
   cl_float4 srcA[n], srcB[n];
 
 
@@ -52,7 +58,7 @@ main ()
   if (context == (cl_context) 0)
     return -1;
 
-  if (1)
+  if (DEBUG)
     {
       printf ("Outside\n");
       printf ("context: %p\n", context);
@@ -88,7 +94,7 @@ main ()
   memobjs[0] = clCreateBuffer(context,
 			      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
 			      sizeof(cl_float4) * n, srcA, &err);
-  if (memobjs[0] == (cl_command_queue)0)
+  if (memobjs[0] == (cl_mem)0)
     {
       if(DEBUG)
 	{

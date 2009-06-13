@@ -1,0 +1,9 @@
+The command queue certainly needs work. It should probably be a separate thread that processes incoming commands. This requires some design work and some concerns about concurrency. The command queue also requires a data structure to hold incoming commands.
+
+Memory objects are also in need of some improvement. It is possible to do it on the PS3. The Cell/B.E. memory hierarchy actually lends itself quite nicely to the OpenCL specification. However, the system is still peculiar and a number of key points need to be addressed during the implementation, most noticeably the 128 byte aligned boundaries and DMA transfers which do not occur until after the kernel has begun execution.
+
+Implementing the clCreateProgramFromSource() function would not be exceedingly difficult, but it would require many checks and error catching. C does allow system calls to be made, such as "gcc -o myprogram", but every system is different. This could be fixed by requiring the programmer to set the compiler of choice, but the function would still need to set all options and capture output and errors.
+
+OpenCL contexts and devices are created using custom functions with hackish implementations. Specifically, devices should be created using the clGetDeviceIDs() function. The program also assumes it is running on the Cell/B.E. More effort should be made to confirm the assumption.
+
+There is impressive documentation at the beginning of most functions, but the internals are lacking in this respect. More explanation about the process would benefit future programmer, particularly since this is an open source project.

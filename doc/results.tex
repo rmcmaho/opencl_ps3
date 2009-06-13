@@ -1,0 +1,84 @@
+The project was satisfactorily completed. It is now possible to compile and run the example D.1 code from the OpenCL specfication ~\cite{opencl} with only slight modifications. The program has only a handful of function calls, but each function is quite complex and will be explained in turn.
+
+First, an OpenCL context is created using clCreateContextFromType().
+\begin{verbatim}
+context =
+        clCreateContextFromType
+        (NULL, CL_DEVICE_TYPE_CPU,
+                NULL, NULL, NULL);
+\end{verbatim}
+
+The context holds all information regarding a system including devices, command queues, and programs. In the example code, the context is created from the CPU device type. The implemented function currently assumes the program is running on a Cell/B.E. processor. A custom function is called to create the context and device structures. The device should be created using clGetDeviceIDs(), but that will be left for further work. All of the parameters in the data structures are allocated and initialized. The function returns a valid cl\_context upon successful completion.
+
+After creating the context, the devices are extracted from the context. This is done using clGetContextInfo().
+\begin{verbatim}
+clGetContextInfo
+        (context, CL_CONTEXT_DEVICES,
+                0, NULL, &cb);
+devices = malloc(cb);
+clGetContextInfo
+        (context, CL_CONTEXT_DEVICES,
+                cb, devices, NULL);
+\end{verbatim}
+
+The first line retrieves the number of devices. The pointers are allocated, and the final line sets the pointers to the devices within the context. The function can used to retrieve many other parameters of the context. This function, and others like it, are the only supported way of retrieving information about OpenCL data structures.
+
+Having created the devices, the command queue can be initialized.
+\begin{verbatim}
+cmd_queue =
+        clCreateCommandQueue(context,
+                devices[0], 0, NULL);
+\end{verbatim}
+
+The command queue handles all commands that are to be scheduled onto a device. Program execution, memory allocation, and memory read/writes are all scheduled through the command queue. Currently, the command queue is just a place holder. It does not actually do anything. Section~\ref{sec:furtherwork} explains more about the command queue.
+
+OpenCL memory objects are created in the example code, but they are not used in this project. 
+\begin{verbatim}
+memobjs[0] = clCreateBuffer(context,
+        CL_MEM_READ_ONLY |
+        CL_MEM_COPY_HOST_PTR,
+        sizeof(cl_float4) * n,
+        srcA, &err);
+\end{verbatim}
+The Cell/B.E has a peculiar memory hierarchy. Each SPE has its own local memory separate from main memory. This memory can only be accessed using specialized commands. Memory must also be aligned on 128 byte boundaries. Given the limited amount of time for the project, this data structure was skipped. See Section~\ref{sec:furtherwork} about possible expansion.
+
+The key difference between the code for this project and the example code is the creation of OpenCL programs. The example code compiles source code and creates the program from the resultant binary. The project code uses pre-built SPE ELF binaries.
+\begin{verbatim}
+const char *input = "hello_spe.elf";
+int size = strlen(input);
+program = clCreateProgramWithBinary
+               (context, 1, devices, 
+                &size, &input,
+                NULL, &err);
+\end{verbatim}
+This function simply sets the data structure parameters and calls a Cell SDK function to open the binary.
+\begin{verbatim}
+char *name = *(program->program_binaries);
+name[(*lengths)] = '\0';
+program->program_elfs =
+        spe_image_open(name);  
+\end{verbatim}
+To run this code on a different OpenCL compatible device, the code would have to be modified. This would be a simple change such as adding C preprocessor macros. This is currently the only non-portable section of the code.
+
+After loading the binary, the OpenCL kernel is created and the parameters are set.
+\begin{verbatim}
+kernel = clCreateKernel
+        (program, "hello_spe", NULL);
+cl_ulong argp = 12345;
+err = clSetKernelArg(kernel, 0,
+        sizeof(cl_ulong), (void *) &argp);
+cl_ulong envp = 67890;
+err = clSetKernelArg(kernel, 1,
+        sizeof(cl_ulong), (void *) &envp);
+\end{verbatim}
+The kernel is normally a function to be run on the device. The function is supposed to search the OpenCL program for a function named "hello\_spe" with the "\_\_kernel" keyword. With a pre-built binary, this is quite difficult and unnecessary to the project. Instead, it simply initializes the parameters of the data structure. Only two arguments are set because SPE functions can only support a maximum of two arguments.
+
+The final section enqueues the kernel to be run a set number of times.
+\begin{verbatim}
+err = clEnqueueNDRangeKernel(cmd_queue,
+        kernel, 1, NULL, global_work_size,
+        local_work_size, 0, NULL, NULL);
+\end{verbatim}
+Again, the command queue does not perform any actions at this time. The function manually executes the kernel on the Cell/B.E. the indicated number times. This is done using pthreads and the Cell SDK spe\_context\_run() function. "global\_work\_size" is the total number of times the kernel will execute. "local\_work\_size" is the number of kernels each compute unit will handle at a time.
+
+After all the threads have finished and joined, the data structures are released and memory is freed. The program is successful if not completely portable. The program compiles and runs. The number of global work items can be changed and the SPE image can be set to any self contained SPE program (no DMA transfer, input/output, etc).
