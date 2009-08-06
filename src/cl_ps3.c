@@ -894,9 +894,16 @@ cl_program clCreateProgramWithBinary (cl_context context,
   PRINT_DEBUG("Before malloc\n");
  
   program->program_binaries = malloc(sizeof(char *));
+
+  PRINT_DEBUG("After first malloc\n");
+
   *(program->program_binaries) = malloc((*lengths)+1);
 
+  PRINT_DEBUG("After second malloc\n");
+
   strcpy(*(program->program_binaries),*((char **)binaries));
+
+  PRINT_DEBUG("After strcpy\n");
 
   char *name = *(program->program_binaries);
   name[(*lengths)] = '\0';

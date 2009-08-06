@@ -131,9 +131,10 @@ main ()
 
 
   const char *input = "hello_spe.elf";
-  int size = strlen(input);
+  size_t len = strlen(input);
+  size_t *size = &len;
   program = clCreateProgramWithBinary(context, 1, devices, 
-				      &size, &input,
+				      size, &input,
 				      NULL, &err);
 
   if (program == (cl_program)0)
