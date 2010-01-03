@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include <libspe2.h>
 
-
 //function prototypes
 void testDeviceInfo (cl_device_id);
+int loadFile(char *fileName, char ***strings, size_t **lengths);
 
 #ifndef DEBUG
 #define DEBUG 0
@@ -43,8 +43,6 @@ main ()
   cl_int err;
   int n = WORK_ITEMS;
   cl_float4 srcA[n], srcB[n];
-
-
 
   printf ("OpenCL on PS3 \n");
   // printf("Num processors: %ld \n",sysconf(_SC_NPROCESSORS_CONF));
@@ -131,10 +129,23 @@ main ()
 
 
   const char *input = "hello_spe.elf";
-  int size = strlen(input);
+  //const char *input = "/home/rmcmaho/Code/C/opencl_ps3/Debug/hello_spe.elf";
+  size_t len = strlen(input);
+  size_t *size = &len;
   program = clCreateProgramWithBinary(context, 1, devices, 
-				      &size, &input,
+				      size, &input,
 				      NULL, &err);
+
+  
+  char **strings;
+  size_t *lengths;
+  int count;
+  count = loadFile("test_kernel.c",&strings, &lengths);
+  //printf("length[6]: %d length[8]: %d\n", lengths[6], lengths[8]);
+  //printf("strings[6]: %s strings[8]: %s\n", strings[6], strings[8]);
+  //
+  clCreateProgramWithSource(context, count, strings, lengths, &err);
+  //
 
   if (program == (cl_program)0)
     {
@@ -207,4 +218,47 @@ testDeviceInfo (cl_device_id device)
 
   fprintf(stderr, "\n====\t%-20s\t====\n\n", "END");
 
+}
+
+
+int loadFile(char *fileName, char ***strings, size_t **lengths)
+{
+
+  FILE *inputFile;
+
+  if((inputFile = fopen(fileName, "r")) == NULL)
+    {
+      fprintf(stderr, "Error opening file.\n");
+      return -1;
+    }
+
+  char buffer[256];
+  int count = 0;
+
+  while(fgets(buffer, sizeof(buffer), inputFile) != NULL )
+    {
+      count++;
+    }
+
+  rewind(inputFile);
+
+  (*strings) = malloc(count*sizeof(char*));
+  (*lengths) = malloc(count*sizeof(size_t));
+
+  count = 0;
+  while(fgets(buffer, sizeof(buffer), inputFile) != NULL )
+    {
+      size_t size = strlen(buffer);
+      (*strings)[count] = malloc(size);
+      strcpy((*strings)[count], buffer);
+
+      //printf("%d: %s", count, (*strings)[count]);
+
+      (*lengths)[count] = size;
+
+      count++;
+    }  
+
+
+  return count;
 }

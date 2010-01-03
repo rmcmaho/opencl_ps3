@@ -1,74 +1,59 @@
-################################################################################
-# Automatically-generated file. Do not edit!
-################################################################################
-
--include ../makefile.init
+########################
+# Revised makefile
+# August 15, 2009
+########################
 
 LSPE = -lspe2
+
 GCOV = -fprofile-arcs -ftest-coverage
 GCOV_OUT = ./src/*.gcov ./src/*.gcda ./src/*.gcno
 GPROF = -pg
 GPROF_OUT = gmon.out
-# GCC = gcc $(LSPE) $(GCOV) $(GPROF)
-GCC := gcc $(LSPE)
 
-ifdef DEBUG
-# GCC := $(GCC) -D DEBUG=$(DEBUG)
-GCC := $(GCC) -D DEBUG=1
-endif
+GCC := ppu-gcc
+SPU-GCC = spu-gcc
 
 ifdef PS3_DEBUG
-# GCC := $(GCC) -D PS3_DEBUG=$(PS3_DEBUG)
 GCC := $(GCC) -D PS3_DEBUG=1
 endif
 
 ifdef WORK_ITEMS
 GCC := $(GCC) -D WORK_ITEMS=$(WORK_ITEMS)
 endif
- 
 
-SPU-GCC = spu-gcc
+INCLUDE = -I$(HOME)/include
+LIBS = -L$(HOME)/lib
+
+CFLAGS = $(OPTIMIZE) -Wall
+OPTIMIZE = -O0
+
+LUA_OPTS = -llua -lm -ldl
+
 RM = rm -rf
 
-
-# All of the sources participating in the build are defined here
--include sources.mk
--include subdir.mk
--include src/subdir.mk
--include objects.mk
-
-ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(strip $(C_DEPS)),)
--include $(C_DEPS)
-endif
-endif
-
--include ../makefile.defs
-
-# Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
 all: opencl_ps3
 
+# Include subdirs
+-include spu/subdir.mk
+-include ppu/subdir.mk
+-include lua/subdir.mk
+
 # Tool invocations
-opencl_ps3: $(OBJS) $(USER_OBJS)
-	@echo 'Building target: $@'
-	@echo 'Invoking: $(GCC) C Linker'
-	$(GCC)  -o"opencl_ps3" $(OBJS) $(USER_OBJS) $(LIBS)
-	$(SPU-GCC) $(SPE_SRCS) -o $(ELFS)	
-	@echo 'Finished building target: $@'
-	@echo ' '
+opencl_ps3: $(OBJS) $(ELFS)
+	-@echo 'Compiling main program...'
+	$(GCC) $(CFLAGS) -o opencl_ps3 $(OBJS) $(LUA_OPTS) $(LSPE) $(INCLUDE) $(LIBS) 
+	-@echo 'Finished'
 
 # Other Targets
-clean:
-	-$(RM) $(C_DEPS)$(OBJS)$(EXECUTABLES)$(ELFS) opencl_ps3
-	-@echo 'Removing gprof output...'
-	$(RM) $(GPROF_OUT)
-	-@echo 'Removing gcov output...'
-	$(RM) $(GCOV_OUT)
+clean: lua-clean ppu-clean spu-clean
+	-@echo 'Removing main file ...'
+	-$(RM) opencl_ps3
+	-@echo 'Removing temp files ...'
+	-$(RM) 125*
+	-@echo 'Finished'
 	-@echo ' '
 
 .PHONY: all clean dependents
 .SECONDARY:
-
--include ../makefile.targets
