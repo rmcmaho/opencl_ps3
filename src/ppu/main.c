@@ -129,7 +129,6 @@ main ()
 
 
   const char *input = "hello_spe.elf";
-  //const char *input = "/home/rmcmaho/Code/C/opencl_ps3/Debug/hello_spe.elf";
   size_t len = strlen(input);
   size_t *size = &len;
   program = clCreateProgramWithBinary(context, 1, devices, 
