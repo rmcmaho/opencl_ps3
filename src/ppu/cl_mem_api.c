@@ -1,3 +1,5 @@
+#include "cl.h"
+#include "cl_ps3.h"
 
 
 /**
@@ -115,4 +117,33 @@ extern cl_mem clCreateBuffer (cl_context context,
 
   return memobj;
 
+}
+
+extern cl_int
+clRetainMemObject(cl_mem memObj)
+{
+  if (memObj == (cl_mem)0)
+    return CL_INVALID_COMMAND_QUEUE;
+  else
+    {
+      (memObj->ref_count)++;
+      return CL_SUCCESS;
+    }
+}
+
+
+extern cl_int
+clReleaseMemObject(cl_mem memObj)
+{
+  if (memObj == (cl_mem)0)
+    return CL_INVALID_COMMAND_QUEUE;
+  else
+    {
+      (memObj->ref_count)--;
+      if(memObj->ref_count <= 0)
+	{
+	  free(memObj);
+	}
+      return CL_SUCCESS;
+    }
 }
