@@ -11,7 +11,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h>
-#include "../lua/kernel_parser.h"
+
 */
 
 #ifndef PS3_DEBUG

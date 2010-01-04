@@ -26,6 +26,19 @@ function getNextKernel()
 
       if line:find("__kernel") ~= nil then
 
+      --- Check for new lines
+      local func_end = line
+      local s = newStack()      
+      while func_end:find(")") == nil
+      do
+	addString(s, func_end)
+	func_end = file:read("*line")
+      end
+      addString(s, func_end)
+      s = table.concat(s)
+      line = s
+
+      ---
 	 local funcName = getKernelName(line)
 	 local nextComma = line:find(",")
 
@@ -71,6 +84,20 @@ function trim(s)
    return (string.gsub(s, "^%s*(.-)%s*$", "%1"))
 end
 
+
+    function newStack ()
+      return {""}   -- starts with an empty string
+    end
+    
+    function addString (stack, s)
+      table.insert(stack, s)    -- push 's' into the the stack
+      for i=table.getn(stack)-1, 1, -1 do
+        if string.len(stack[i]) > string.len(stack[i+1]) then
+          break
+        end
+        stack[i] = stack[i] .. table.remove(stack)
+      end
+    end
 
 --[[
 file = loadFile("test_kernel.c")
