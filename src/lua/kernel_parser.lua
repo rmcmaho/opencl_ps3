@@ -26,7 +26,7 @@ function getNextKernel()
 
       if line:find("__kernel") ~= nil then
 
-      --- Check for new lines
+      --- Check for new lines (will break if extra parentheses are used)
       local func_end = line
       local s = newStack()      
       while func_end:find(")") == nil
@@ -37,26 +37,31 @@ function getNextKernel()
       addString(s, func_end)
       s = table.concat(s)
       line = s
-
       ---
 	 local funcName = getKernelName(line)
-	 local nextComma = line:find(",")
+	 
+	 -- Why does this give "unfinished capture"?
+	 --local beginParam = line:find("(")
+	 local begin, finish = line:find("%s+%w+%s-%(")	
+	 local beginParam = finish+1
+	 local endParam = line:find(",")
 
-	 if nextComma == nil then
-	    return funcName, 1
-	 else
+	 local param_table = {}
+	 local paramCount = 1	 
+
+	 while endParam ~= nil
+	 do
+	    table.insert(param_table, trim(string.sub(line, beginParam, endParam-1)))
+	    paramCount = paramCount + 1
+	    beginParam = endParam+1
+	    endParam = line:find(",",beginParam)
+	 end --End little while
+
+	 endParam = line:find(")", beginParam)
+	 table.insert(param_table, trim(string.sub(line, beginParam, endParam-1)))
+
+	 return funcName, paramCount
 	    
-	    local paramCount = 1
-	    while nextComma ~= nil
-	    do
-	       paramCount = paramCount + 1
-	       nextComma = line:find(",",nextComma+1)
-	    end
-
-	    return funcName, paramCount
-	    
-	 end --End else	 
-
       end --End big if
 
    end --End while
@@ -91,7 +96,8 @@ end
     
     function addString (stack, s)
       table.insert(stack, s)    -- push 's' into the the stack
-      for i=table.getn(stack)-1, 1, -1 do
+      -- What does this loop do?
+      for i=table.getn(stack)-1, 1, -1 do       
         if string.len(stack[i]) > string.len(stack[i+1]) then
           break
         end
