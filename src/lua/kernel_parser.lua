@@ -15,30 +15,34 @@ function loadFile(filename)
 end
 
 
--- Returns kernel name and number of parameters
+-- Returns kernel name, number of parameters, and table of parameters
 function getNextKernel()
    
    local file = FILE
 
    while true do
       local line = file:read("*line")
-      if line == nil then break end
+
+      if line == nil then 
+      	 -- End of file 
+     	 return nil, nil, nil
+      end
 
       if line:find("__kernel") ~= nil then
 
-      --- Check for new lines (will break if extra parentheses are used)
-      local func_end = line
-      local s = newStack()      
-      while func_end:find(")") == nil
-      do
-	addString(s, func_end)
-	func_end = file:read("*line")
-      end
-      addString(s, func_end)
-      s = table.concat(s)
-      line = s
-      ---
-	 local funcName = getKernelName(line)
+      	  --- Check for new lines (will break if extra parentheses are used)
+      	  local func_end = line
+      	  local s = newStack()      
+      	  while func_end:find(")") == nil
+      	  do
+		addString(s, func_end)
+		func_end = file:read("*line")
+          end
+      	  addString(s, func_end)
+      	  s = table.concat(s)
+      	  line = s
+      	  ---
+	  local funcName = getKernelName(line)
 	 
 	 -- Why does this give "unfinished capture"?
 	 --local beginParam = line:find("(")
@@ -60,15 +64,14 @@ function getNextKernel()
 	 endParam = line:find(")", beginParam)
 	 table.insert(param_table, trim(string.sub(line, beginParam, endParam-1)))
 
-	 return funcName, paramCount
+	 return funcName, paramCount, param_table
+
+     end -- End big if
+
+   end -- End big while
+
+   return nil, nil, nil 
 	    
-      end --End big if
-
-   end --End while
-
-   --end of file reached
-   return nil, nil
-
 end
 
 
@@ -90,20 +93,20 @@ function trim(s)
 end
 
 
-    function newStack ()
-      return {""}   -- starts with an empty string
-    end
+function newStack ()
+   return {""}   -- starts with an empty string
+end
     
-    function addString (stack, s)
-      table.insert(stack, s)    -- push 's' into the the stack
-      -- What does this loop do?
-      for i=table.getn(stack)-1, 1, -1 do       
-        if string.len(stack[i]) > string.len(stack[i+1]) then
+function addString (stack, s)
+   table.insert(stack, s)    -- push 's' into the the stack
+   -- What does this loop do?
+   for i=table.getn(stack)-1, 1, -1 do       
+      if string.len(stack[i]) > string.len(stack[i+1]) then
           break
-        end
-        stack[i] = stack[i] .. table.remove(stack)
       end
-    end
+      stack[i] = stack[i] .. table.remove(stack)
+   end
+end
 
 --[[
 file = loadFile("test_kernel.c")
