@@ -3,6 +3,8 @@
 
 #include "cl.h"
 #include "cl_ps3.h"
+
+/*
 #include <libspe2.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,6 +12,7 @@
 #include <pthread.h>
 #include <time.h>
 #include "../lua/kernel_parser.h"
+*/
 
 #ifndef PS3_DEBUG
 #define PS3_DEBUG 0
@@ -30,15 +33,6 @@ setErrCode(cl_int * errcode_ret, cl_int code)
   if(errcode_ret != NULL)
     *errcode_ret = code;
 }
-
-
-
-
-
-
-/******************************************************************************/
-
-// OpenCL Functions
 
 
 //#endif // __CELL_PLATFORM_C
