@@ -52,17 +52,20 @@ function getNextKernel()
 	 
 	 local param_table = {}
 	 local paramCount = 1	 
-	 
+	 local full_param = ""
+
 	 while endParam ~= nil
 	 do
-	    table.insert(param_table, trim(string.sub(line, beginParam, endParam-1)))
+	    full_param = trim(string.sub(line, beginParam, endParam-1))
+	    table.insert(param_table, getParamType(full_param))
 	    paramCount = paramCount + 1
 	    beginParam = endParam+1
 	    endParam = line:find(",",beginParam)
 	 end --End little while
 	 
 	 endParam = line:find(")", beginParam)
-	 table.insert(param_table, trim(string.sub(line, beginParam, endParam-1)))
+	 full_param = trim(string.sub(line, beginParam, endParam-1))
+	 table.insert(param_table, getParamType(full_param))
 	 
 	 return funcName, paramCount, param_table
 	 
@@ -87,6 +90,21 @@ function getKernelName(s)
    
 end
 
+function getParamType(param)
+
+   if string.find(param, "global%s+") ~=nil or string.find(param, "local%s+") ~= nil
+   then
+      local begin, finish = param:find("%s+%w+%s+")
+      param = param:sub(begin, finish)
+      param = trim(param)
+   else
+      local begin, finish = param:find("^%w+%s")
+      param = param:sub(begin, finish-1)
+   end
+
+   return param
+
+end
 
 function trim(s)
    return (string.gsub(s, "^%s*(.-)%s*$", "%1"))
