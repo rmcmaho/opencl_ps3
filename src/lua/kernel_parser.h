@@ -4,7 +4,7 @@
 #include <lualib.h>
 
 
-#define CONFIG_FILE "kernel_parser.lua" 
+#define CONFIG_FILE "../src/lua/kernel_parser.lua" 
 
 lua_State* createLuaState();
 
