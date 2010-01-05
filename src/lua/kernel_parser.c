@@ -50,7 +50,7 @@ void loadNextKernel(lua_State *L, char **kernelName, int *numKernelArgs)
   lua_getglobal(L, "getNextKernel");
   
   int numInput = 0;
-  int numResults = 2;
+  int numResults = 3;
   
   if (lua_pcall(L, numInput, numResults, 0) != 0)
     {
@@ -61,14 +61,15 @@ void loadNextKernel(lua_State *L, char **kernelName, int *numKernelArgs)
       return;
     }
 
-  const char *funcName = lua_tostring(L, -2);
-  size_t length = lua_strlen(L, -2);
-  int numArgs = lua_tonumber(L, -1);
-  
+  const char *funcName = lua_tostring(L, -3);
+  size_t length = lua_strlen(L, -3);
+  int numArgs = lua_tonumber(L, -2);
+
   if(funcName == NULL || strcmp(funcName, "(nil)") == 0)
     {
       (*kernelName) = NULL;
       (*numKernelArgs) = -1;
+      return;
     }
   else
     {
@@ -76,7 +77,19 @@ void loadNextKernel(lua_State *L, char **kernelName, int *numKernelArgs)
       strncpy(*kernelName, funcName, length);
       *numKernelArgs = numArgs;
     }
-  
+
+  //Convert Lua table into array
+  int i;
+  char **argTypes = calloc(numArgs, sizeof(char *));
+  for (i=1; i<=numArgs; i++)
+    {
+      lua_rawgeti(L, -1, i);
+      const char *type = lua_tostring(L, -1);
+      size_t len = lua_strlen(L, -1);
+      lua_pop(L, 1);
+      argTypes[i-1] = calloc(len, sizeof(char));
+      strncpy(argTypes[i-1], type, len);
+    }  
 }
 
 
