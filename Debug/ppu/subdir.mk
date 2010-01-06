@@ -2,7 +2,7 @@
 C_SRCS += ../src/ppu/cl_ps3.c \
 	../src/ppu/main.c
 
-OBJS += $PPU_OBJS
+OBJS += $(PPU_OBJS)
 PPU_OBJS = ./ppu/cl_command_queue_api.o \
 	./ppu/cl_context_api.o \
 	./ppu/cl_device_api.o \
@@ -24,4 +24,4 @@ ppu/%.o: ../src/ppu/%.c
 
 ppu-clean:
 	-@echo 'Cleaning ppu files ...'
-	-$(RM) $PPU_OBJS
+	-$(RM) $(PPU_OBJS)
