@@ -1,6 +1,7 @@
 #include "cl.h"
 #include "cl_ps3.h"
-
+#include <stdlib.h>
+#include <string.h>
 
 extern cl_context
 createCellContext (cl_int * errcode_ret)

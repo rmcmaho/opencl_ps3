@@ -1,5 +1,7 @@
 #include "cl.h"
 #include "cl_ps3.h"
+#include <stdlib.h>
+#include <string.h>
 
 /**
  * The list of devices available can be obtained using the following function.

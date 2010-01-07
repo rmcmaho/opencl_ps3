@@ -1,5 +1,7 @@
 #include "cl.h"
 #include "cl_ps3.h"
+#include <stdlib.h>
+#include <string.h>
 
 cl_event createNewEvent(cl_command_queue command_queue,
 			cl_command_type type,

@@ -1,6 +1,8 @@
 #include "cl.h"
 #include "cl_ps3.h"
 #include "../lua/kernel_parser.h"
+#include <stdlib.h>
+#include <string.h>
 
 /**
  *

@@ -1,6 +1,6 @@
 #include "cl.h"
 #include "cl_ps3.h"
-
+#include <stdlib.h>
 
 /**
  * A buffer object is created using the following function

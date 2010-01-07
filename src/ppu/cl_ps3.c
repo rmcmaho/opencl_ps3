@@ -16,7 +16,7 @@
 
 // Helper functions
 
-void
+extern void
 setErrCode(cl_int * errcode_ret, cl_int code)
 {
   if(errcode_ret != NULL)

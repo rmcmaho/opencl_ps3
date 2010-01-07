@@ -61,6 +61,8 @@ struct _event_list
   event_list next;
 };
 
+extern void setErrCode(cl_int *, cl_int);
+
 //
 //OpenCL data types
 //
