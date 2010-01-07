@@ -126,7 +126,7 @@ clRetainMemObject(cl_mem memObj)
     return CL_INVALID_COMMAND_QUEUE;
   else
     {
-      (memObj->ref_count)++;
+      (memObj->mem_ref_count)++;
       return CL_SUCCESS;
     }
 }
@@ -139,8 +139,8 @@ clReleaseMemObject(cl_mem memObj)
     return CL_INVALID_COMMAND_QUEUE;
   else
     {
-      (memObj->ref_count)--;
-      if(memObj->ref_count <= 0)
+      (memObj->mem_ref_count)--;
+      if(memObj->mem_ref_count <= 0)
 	{
 	  free(memObj);
 	}

@@ -34,6 +34,17 @@
 #define __kernel
 #endif
 
+#ifndef PS3_DEBUG
+#define PS3_DEBUG 0
+#endif
+
+
+#if PS3_DEBUG
+#define PRINT_DEBUG(format, args...) printf(format, ##args);
+#else
+#define PRINT_DEBUG(format, args...)
+#endif
+
 //
 //Helper functions and data types
 //
