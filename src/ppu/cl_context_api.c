@@ -61,7 +61,7 @@ extern cl_context clCreateContextFromType
    logging_fn pfn_notify, void *user_data, cl_int * errcode_ret)
 {
 
-  PRINT_DEBUG(stderr, "\n====\tCreating context from type\t====\n");
+  PRINT_DEBUG("\n====\tCreating context from type\t====\n");
 
   if (properties != NULL)
     {
@@ -72,7 +72,7 @@ extern cl_context clCreateContextFromType
 
   if (device_type == CL_DEVICE_TYPE_CPU)
     {
-      PRINT_DEBUG(stderr, "Creating cell context\n");
+      PRINT_DEBUG("Creating cell context\n");
 
       cl_context context = createCellContext (errcode_ret);
 
@@ -95,11 +95,11 @@ extern cl_context clCreateContextFromType
 
       context->device_list = device_id;
 
-      PRINT_DEBUG(stderr, "Performing implicit context retain\n");
+      PRINT_DEBUG("Performing implicit context retain\n");
 
       clRetainContext (context);
 
-      PRINT_DEBUG(stderr, "====\tReturning context from type\t====\n");
+      PRINT_DEBUG("====\tReturning context from type\t====\n");
 
       return context;
     }
