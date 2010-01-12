@@ -34,7 +34,7 @@ main ()
   cl_context context;
   cl_command_queue cmd_queue;
   cl_device_id *devices;
-  cl_program program;
+  cl_program program = (cl_program)0;
   cl_kernel kernel;
   cl_mem memobjs[3];
   size_t global_work_size[1];
@@ -131,10 +131,10 @@ main ()
   const char *input = "hello_spe.elf";
   size_t len = strlen(input);
   size_t *size = &len;
-  program = clCreateProgramWithBinary(context, 1, devices, 
+  /*  program = clCreateProgramWithBinary(context, 1, devices, 
 				      size, &input,
 				      NULL, &err);
-
+  */
   
   char **strings;
   size_t *lengths;
@@ -143,13 +143,18 @@ main ()
   //printf("length[6]: %d length[8]: %d\n", lengths[6], lengths[8]);
   //printf("strings[6]: %s strings[8]: %s\n", strings[6], strings[8]);
   //
-  clCreateProgramWithSource(context, count, strings, lengths, &err);
+  program = clCreateProgramWithSource(context, count, strings, lengths, &err);
   //
+
 
   if (program == (cl_program)0)
     {
+      PRINT_DEBUG("Error creating program: %d\n", err);
+      PRINT_DEBUG("Deleteing memobjs\n");
       delete_memobjs(memobjs, 3);
+      PRINT_DEBUG("Releasing command queue\n");
       clReleaseCommandQueue(cmd_queue);
+      PRINT_DEBUG("Releasing contextn\n");
       clReleaseContext(context);
       return -1;
     }
@@ -158,8 +163,9 @@ main ()
 
 
   kernel = clCreateKernel(program, "hello_spe", NULL);
-  if (program == (cl_program)0)
+  if (kernel == (cl_kernel)0)
     {
+      PRINT_DEBUG("Error creating kernel\n");
       delete_memobjs(memobjs, 3);
       clReleaseCommandQueue(cmd_queue);
       clReleaseContext(context);
