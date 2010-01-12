@@ -60,6 +60,29 @@ clCreateKernel (cl_program program,
 
   PRINT_DEBUG("\n====\tCreating kernel  \t====\n");
 
+  int compare_result;
+  int i;
+  PRINT_DEBUG("Num kernels: %d\n", program->program_num_kernels);
+  for(i=0; i<program->program_num_kernels; i++)
+    {
+      PRINT_DEBUG("Compare %s with %s\n", kernel_name, program->program_kernel_names[i]);
+      compare_result = strcmp(kernel_name, program->program_kernel_names[i]);
+      PRINT_DEBUG("Compare result: %d\n", compare_result);
+      if (compare_result == 0)
+	break;
+    }
+  
+
+  if(compare_result != 0)
+    {
+      PRINT_DEBUG("CL_INVALID_KERNEL_NAME");
+      setErrCode(errcode_ret, CL_INVALID_KERNEL_NAME);
+      PRINT_DEBUG("\n====\tReturning kernel  \t====\n");
+      return (cl_kernel)0;
+    }
+
+  PRINT_DEBUG("Allocating space for kernel...\n");
+
   cl_kernel kernel = malloc(sizeof(struct _cl_kernel));
 
   if(kernel == NULL)
@@ -68,19 +91,25 @@ clCreateKernel (cl_program program,
       return (cl_kernel)0;
     }
 
-  int size = strlen(kernel_name);
+  PRINT_DEBUG("Space allocated.\n");
+
+  int size = strlen(program->program_kernel_names[i]);
   kernel->kernel_function_name = malloc(size+1);
-  strcpy(kernel->kernel_function_name, kernel_name);
+
+  PRINT_DEBUG("Copying function name...\n");
+
+  strcpy(kernel->kernel_function_name, program->program_kernel_names[i]);
   kernel->kernel_function_name[size] = '\0';
 
-  // SPE always has two arguments
-  // EDIT: But kernels don't. Need to write a parser to count.
-  kernel->kernel_num_args = 2;
+  PRINT_DEBUG("Copying complete.\n");
+
+  kernel->kernel_num_args = program->program_kernel_num_args[i];
 
   kernel->kernel_ref_count = 1;
   kernel->kernel_context = program->program_context;
   kernel->kernel_program = program;
 
+  //This will be removed once testing is complete
   kernel->kernel_num_spe_args = 2;
   kernel->kernel_spe_args = malloc(sizeof(cl_ulong)*2);
 
